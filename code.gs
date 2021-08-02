@@ -1,6 +1,7 @@
 const spreadSheet = SpreadsheetApp.getActiveSpreadsheet()
 const spreadSheetId = spreadSheet.getId()
 const sheetNameProductItemList = 'Amazon商品リスト'
+const sheetName11stCategoryList = '11stカテゴリ管理'
 
 /*
  * アドオンメニュー追加.
@@ -11,6 +12,18 @@ const onOpen = e => {
     .createAddonMenu()
     .addItem('商品情報取得', 'getProductItems')
     .addToUi()
+}
+
+const setRule11stCategoryCells = () => {
+  const sql11stCategoryList = SpreadSheetsSQL.open(spreadSheetId, sheetName11stCategoryList)
+  const values = sql11stCategoryList.select(['大分類_name_ja', '中分類_name_ja', '小分類_name_ja', '細分類_name_ja'])
+    .filter('中分類_name_ja = - AND 小分類_name_ja = - AND 細分類_name_ja = -')
+    .result()
+    .map(e => e['大分類_name_ja'])
+
+  let rule = SpreadsheetApp.newDataValidation().requireValueInList(values).build()
+  const sheet = spreadSheet.getSheetByName(sheetNameProductItemList)
+  sheet.getRange(2, 9, sheet.getLastRow(), 1).setDataValidation(rule)
 }
 
 /*
@@ -94,8 +107,10 @@ const updateRows_ = (sql, data, rateJpyToKrw) => {
     sql.updateRows({
       '商品名': e.title ?? '',
       '商品詳細': e.detail_table.replace(/\r?\n/g,"") ?? '',
-      'Amazon価格(円)': e.price ?? '',
-      '販売予定価格(ウォン)': e.price ? (e.price * 2 * rateJpyToKrw) : '',
+      'Amazon価格(円)': e.price ? e.price.replace(',', '') : '',
+      '販売予定価格(ウォン)': e.price ? (Math.floor(parseInt(e.price.replace(',', '')) * 2 * rateJpyToKrw)) : '',
+      '在庫': e.stock ?? '',
+      'amazonカテゴリ': e.category ? e.category.join(',') : '',
       '画像1': e.images[0] ?? '',
       '画像2': e.images[1] ?? '',
       '画像3': e.images[2] ?? '',
