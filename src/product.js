@@ -1,35 +1,13 @@
+import {chunk_, getRateJpyToKrw_} from './utils'
+
 const spreadSheet = SpreadsheetApp.getActiveSpreadsheet()
 const spreadSheetId = spreadSheet.getId()
 const sheetNameProductItemList = 'Amazon商品リスト'
-const sheetName11stCategoryList = '11stカテゴリ管理'
-
-/*
- * アドオンメニュー追加.
- */
-const onOpen = e => {
-  SpreadsheetApp
-    .getUi()
-    .createAddonMenu()
-    .addItem('商品情報取得', 'getProductItems')
-    .addToUi()
-}
-
-const setRule11stCategoryCells = () => {
-  const sql11stCategoryList = SpreadSheetsSQL.open(spreadSheetId, sheetName11stCategoryList)
-  const values = sql11stCategoryList.select(['大分類_name_ja', '中分類_name_ja', '小分類_name_ja', '細分類_name_ja'])
-    .filter('中分類_name_ja = - AND 小分類_name_ja = - AND 細分類_name_ja = -')
-    .result()
-    .map(e => e['大分類_name_ja'])
-
-  let rule = SpreadsheetApp.newDataValidation().requireValueInList(values).build()
-  const sheet = spreadSheet.getSheetByName(sheetNameProductItemList)
-  sheet.getRange(2, 9, sheet.getLastRow(), 1).setDataValidation(rule)
-}
 
 /*
  * 未取得のasinリストからAmazonの商品情報を取得してスプレッドシートに書き出す.
  */
-const getProductItems = () => {
+export const getProductItems = () => {
   const lock = LockService.getScriptLock()
   if (! lock.tryLock(1000)) {
     spreadSheet.toast('多重実行のため処理を終了します.')
@@ -37,9 +15,7 @@ const getProductItems = () => {
   }
 
   try {
-    // jpy と krwのレートを取得.
     const rateJpyToKrw = getRateJpyToKrw_()
-
     const sqlProductItemList = SpreadSheetsSQL.open(spreadSheetId, sheetNameProductItemList)
     const asin = sqlProductItemList
       .select(['asin', 'ステータス'])
@@ -91,6 +67,7 @@ const validateAsin_ = asin => {
 const fetchAll_ = (asin) => {
   try {
     const url = `${ScriptProperties.getProperty('AMAZON_API_BASE_URL')}${asin.join(',')}`
+    console.log(url)
     const json = UrlFetchApp.fetch(url).getContentText()
     return JSON.parse(json)
   } catch (e) {
@@ -122,29 +99,4 @@ const updateRows_ = (sql, data, rateJpyToKrw) => {
       '更新日時': Utilities.formatDate(new Date(), 'JST', 'yyyy-MM-dd HH:mm:ss') ?? '',
     }, `asin = ${e.asin}`)
   })
-}
-
-/*
- * 日本円とウォンのレートを取得する.
- */
-const getRateJpyToKrw_ = () => {
-  try {
-    const url = 'https://api.aoikujira.com/kawase/json/jpy'
-    const json = UrlFetchApp.fetch(url).getContentText()
-    const data = JSON.parse(json)
-    return data['KRW']
-  } catch (e) {
-    console.error(e)
-    throw e
-  }
-}
-
-/*
- * 配列をchunkする.
- */
-const chunk_ = (arr, size) => {
-  return arr.reduce(
-    (newarr, _, i) => (i % size ? newarr : [...newarr, arr.slice(i, i + size)]),
-    []
-  )
 }
