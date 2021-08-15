@@ -5,7 +5,7 @@ import {
   sheet11stCategoryList,
   sheetName11stCategoryList,
   sheetProductList,
-  spreadSheetId
+  spreadSheetId,
 } from "./utils";
 
 /**
@@ -42,7 +42,7 @@ export const setLargeCategoryRules = () => {
  * 選択肢用で使用する子カテゴリリストをあらかじめ計算しておく.
  */
 export const setChildCategory = () => {
-  deleteTrigger('setChildCategory');
+  deleteTrigger("setChildCategory");
   const startTime = new Date();
   const sql11stCategoryList = SpreadSheetsSQL.open(
     spreadSheetId,
@@ -164,51 +164,39 @@ export const setChildCategory = () => {
 
     // 小分類における選択肢の細分類文字列を作成.
     const smafllCategoryList = sql11stCategoryList
-      .select([
-        "No.",
-        "小分類_id",
-        "細分類_id",
-        "選択肢用子カテゴリ",
-      ])
+      .select(["No.", "小分類_id", "細分類_id", "選択肢用子カテゴリ"])
       .filter("小分類_id != - AND 細分類_id = - AND 選択肢用子カテゴリ = NULL")
-      .result()
+      .result();
 
     for (let i in smallCategoryList) {
       if (isStop(startTime)) {
-        throw '実行上限時間が近いため正常終了.'
+        throw "実行上限時間が近いため正常終了.";
       }
 
-      console.log('----------')
-      console.log(`No.: ${smallCategoryList[i]['No.']}`)
-      console.log(`小分類: ${smallCategoryList[i]['小分類_id']}`)
+      console.log("----------");
+      console.log(`No.: ${smallCategoryList[i]["No."]}`);
+      console.log(`小分類: ${smallCategoryList[i]["小分類_id"]}`);
 
       let childCategoryStr = sql11stCategoryList
-        .select([
-          "No.",
-          "小分類_id",
-          "細分類_id",
-          "細分類_name_ja",
-        ])
-        .filter(
-          `小分類_id = ${smallCategoryList[i]["小分類_id"]}`
-        )
+        .select(["No.", "小分類_id", "細分類_id", "細分類_name_ja"])
+        .filter(`小分類_id = ${smallCategoryList[i]["小分類_id"]}`)
         .result()
         .filter((e) => e["細分類_id"] !== "-")
         .map((e) => `${e["No."]}:${e["細分類_name_ja"]}`)
         .join(",");
 
-      console.log(`選択肢用子カテゴリ: ${childCategoryStr}`)
+      console.log(`選択肢用子カテゴリ: ${childCategoryStr}`);
 
       sql11stCategoryList.updateRows(
         {
-          "選択肢用子カテゴリ": childCategoryStr,
+          選択肢用子カテゴリ: childCategoryStr,
         },
         `No. = ${smallCategoryList[i]["No."]}`
       );
     }
   } catch (e) {
     // 未処理件数があるためトリガーセット．
-    console.error(e)
-    setTrigger('setChildCategory')
+    console.error(e);
+    setTrigger("setChildCategory");
   }
 };

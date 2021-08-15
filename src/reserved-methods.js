@@ -1,4 +1,3 @@
-
 export const onOpen = (e) => {
   SpreadsheetApp.getUi()
     .createAddonMenu()
