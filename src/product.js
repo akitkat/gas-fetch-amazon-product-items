@@ -104,9 +104,9 @@ const updateRows_ = (sql, org, data, rateJpyToKrw) => {
         商品名: e.title ?? "",
         // '商品詳細': e.detail_table.replace(/\r?\n/g,"") ?? '',
         商品詳細: `${e.images
-          .slice(4)
+          .slice(1)
           .map((url) => `<img src="${url}">`)
-          .join()}<img src="${attentionImageUrl}">`,
+          .join('')}<img src="${attentionImageUrl}">`,
         "Amazon価格(円)": e.price ? e.price.replace(",", "") : 0,
         "販売予定価格(ウォン)": e.price
           ? Math.ceil(
